@@ -1,0 +1,43 @@
+# Docker File for a simple Maria DB 10.0
+# docker build -t cenmaria10 - < "C:\Users\lmanzo\Documents\Alfresco\PersonalProject\Docker\DF_MaB100.txt" --force-rm
+# docker build -t cenmaria10 - < "full path\DF_MaB100.txt" --force-rm
+# docker run -it -p 2201:22 -p 3306:3306 cenmaria10:latest
+# Includes: SSH Server and Maria DB 10.0
+# 
+
+# ------------Build-------------------
+
+FROM centos:latest
+
+MAINTAINER Luigi Manzo <luigi.manzo@alfresco.com>
+
+# ------------Directives-------------------
+# 
+
+
+# ------------Environment-------------------
+ENV mariadb_install=/usr/share/mysql
+#ENV mariadb_dbdir=
+
+# OS Setup
+#Configure /etc/sysconfig/network-scripts/ifcfg-eth0
+RUN yum -y install /sbin/service which nano openssh-server openssh-server-sysvinit openssh-clients net-tools curl wget systemd-sysv initscripts tcpdump sysstat
+
+
+# Users Setup
+RUN	useradd mariadb && \
+	echo 'mariadb:mariadb' | chpasswd && \
+	mkdir ${mariadb_install}
+
+# MariaDB 10.0 Installation
+RUN yum-config-manager --add-repo http://yum.mariadb.org/10.0/centos7-amd64 && \
+	rpm --import https://yum.mariadb.org/RPM-GPG-KEY-MariaDB && \
+	yum -y install MariaDB-server MariaDB-client && \
+	cp ${mariadb_install}/mysql.server /etc/init.d && \
+	/etc/init.d/mysql.server start && \
+	mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'root' WITH GRANT OPTION;"
+
+	
+#Final Checks
+EXPOSE 22 3306
+ENTRYPOINT /etc/init.d/sshd start &&  /etc/init.d/mysql.server start && /bin/bash
