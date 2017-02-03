@@ -1,0 +1,49 @@
+# Docker File for a simple Postgres 9.5 Database
+# docker build -t cenpgsql95 - < "full path\DF_Pg95" --force-rm
+# docker run -it -p 2201:22 -p 5433:5432 cenpgsql95:latest
+# Includes: SSH Server and Postgres 9.5
+# 
+
+# ------------Build-------------------
+
+FROM centos:latest
+
+MAINTAINER Luigi Manzo <luigi.manzo@alfresco.com>
+
+# ------------Directives-------------------
+# 
+
+
+# ------------Environment-------------------
+
+ENV postgres_install=/usr/pgsql-9.5
+ENV PGDATA=/usr/pgsql-9.5/data
+
+# OS Setup
+#Configure /etc/sysconfig/network-scripts/ifcfg-eth0
+RUN yum -y install /sbin/service which nano openssh-server openssh-server-sysvinit openssh-clients net-tools curl wget systemd-sysv initscripts tcpdump sysstat
+
+# Users Setup
+RUN	useradd postgres && \
+	echo 'postgres:postgres' | chpasswd
+
+# Postgres 9.5 Installation
+RUN wget https://download.postgresql.org/pub/repos/yum/9.5/redhat/rhel-7-x86_64/pgdg-centos95-9.5-3.noarch.rpm && \
+	rpm -ihv pgdg-centos95-9.5-3.noarch.rpm && \
+	yum --disablerepo="*" --enablerepo="pgdg95" -y install postgresql95-server postgresql95-libs postgresql95
+
+# Postgres Configuration
+WORKDIR ${postgres_install}
+RUN mkdir -p ${PGDATA} && \
+	chown postgres ${PGDATA} && \
+	su - postgres -c "${postgres_install}/bin/initdb -D '${PGDATA}'"  && \
+	sed -i '/listen_addresses/s/localhost/*/1' ${PGDATA}/postgresql.conf && \
+	sed -i '/listen_addresses/s/.//' ${PGDATA}/postgresql.conf && \
+	sed -i '/port/s/.//' ${PGDATA}/postgresql.conf && \
+	printf 'host\tall\t\tall\t\t0.0.0.0/0\t\ttrust\n' >> ${PGDATA}/pg_hba.conf
+
+
+
+#Final Checks
+EXPOSE 22 5432
+ENTRYPOINT /etc/init.d/sshd start && su - postgres -c "${postgres_install}/bin/pg_ctl start -s -D '${PGDATA}' -l ~/postgres.log" && /bin/bash
