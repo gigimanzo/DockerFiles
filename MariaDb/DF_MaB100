@@ -1,5 +1,4 @@
 # Docker File for a simple Maria DB 10.0
-# docker build -t cenmaria10 - < "C:\Users\lmanzo\Documents\Alfresco\PersonalProject\Docker\DF_MaB100.txt" --force-rm
 # docker build -t cenmaria10 - < "full path\DF_MaB100.txt" --force-rm
 # docker run -it -p 2201:22 -p 3306:3306 cenmaria10:latest
 # Includes: SSH Server and Maria DB 10.0
